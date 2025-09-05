@@ -66,7 +66,7 @@ useEffect(() => {
       setHelpers(JSON.parse(savedHelpers));
     }
   } catch (error) {
-    console.log('localStorage غير متاح، سيتم استخدام الذاكرة فقط');
+    console.log('localStorage      ');
   }
 }, []);
 
