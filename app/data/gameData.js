@@ -1,4 +1,4 @@
-// ملف بيانات الأسئلة المحدث
+// ملف بيانات الأسئلة المحدث مع أسئلة الاختيارات
 // imageUrl: '../../2.jpg'
 
 export const sampleTopics = [
@@ -486,12 +486,126 @@ export const sampleTopics = [
   audioUrl: '../../absi abod.mp3'
 },
 ]
+},
+
+// إضافة فقرة الاختيارات الجديدة
+{
+  id: 'choices',
+  name: 'الاختيارات',
+  questions: [
+    {
+      id: 'choice1',
+      question: 'لماذا يشرب الإنسان الماء؟',
+      answers: [
+        { text: 'لأنه عطشان', points: 50 },
+        { text: 'لأنه كان خائف', points: 40 },
+        { text: 'للحفاظ على الصحة', points: 30 },
+        { text: 'لأن الطبيب نصحه', points: 25 },
+        { text: 'لينعش نفسه', points: 20 },
+        { text: 'لأنه يحب طعمه', points: 15 },
+        { text: 'لأنه متوفر', points: 10 }
+      ],
+      order: 1
+    },
+    {
+      id: 'choice2',
+      question: 'ما هو أول شيء تفعله عندما تستيقظ من النوم؟',
+      answers: [
+        { text: 'أفتح عيني', points: 50 },
+        { text: 'أنظر للساعة', points: 40 },
+        { text: 'أتمطى', points: 30 },
+        { text: 'أذهب للحمام', points: 25 },
+        { text: 'أتحقق من الهاتف', points: 20 },
+        { text: 'أشرب الماء', points: 15 },
+        { text: 'أصلي', points: 10 }
+      ],
+      order: 2
+    },
+    {
+      id: 'choice3',
+      question: 'أين تذهب عادة في العطلة؟',
+      answers: [
+        { text: 'البيت', points: 50 },
+        { text: 'البحر', points: 40 },
+        { text: 'الجبال', points: 30 },
+        { text: 'المدينة الملاهي', points: 25 },
+        { text: 'المطعم', points: 20 },
+        { text: 'عند الأصدقاء', points: 15 },
+        { text: 'المول', points: 10 }
+      ],
+      order: 3
+    },
+    {
+      id: 'choice4',
+      question: 'ما هو أكثر شيء تخاف منه؟',
+      answers: [
+        { text: 'العناكب', points: 50 },
+        { text: 'الظلام', points: 40 },
+        { text: 'المرتفعات', points: 30 },
+        { text: 'الماء العميق', points: 25 },
+        { text: 'الأماكن المغلقة', points: 20 },
+        { text: 'الثعابين', points: 15 },
+        { text: 'الأشباح', points: 10 }
+      ],
+      order: 4
+    },
+    {
+      id: 'choice5',
+      question: 'ما هو طعامك المفضل؟',
+      answers: [
+        { text: 'البيتزا', points: 50 },
+        { text: 'المنسف', points: 40 },
+        { text: 'المعكرونة', points: 30 },
+        { text: 'الكباب', points: 25 },
+        { text: 'الشاورما', points: 20 },
+        { text: 'البرجر', points: 15 },
+        { text: 'السمك', points: 10 }
+      ],
+      order: 5
+    },
+    {
+      id: 'choice6',
+      question: 'ما هو لونك المفضل؟',
+      answers: [
+        { text: 'الأزرق', points: 50 },
+        { text: 'الأحمر', points: 40 },
+        { text: 'الأسود', points: 30 },
+        { text: 'الأخضر', points: 25 },
+        { text: 'الأبيض', points: 20 },
+        { text: 'الأصفر', points: 15 },
+        { text: 'البنفسجي', points: 10 }
+      ],
+      order: 6
+    },
+    {
+      id: 'choice7',
+      question: 'ما هو أفضل وقت في اليوم بالنسبة لك؟',
+      answers: [
+        { text: 'الليل', points: 50 },
+        { text: 'الصباح الباكر', points: 40 },
+        { text: 'المساء', points: 30 },
+        { text: 'بعد الظهر', points: 25 },
+        { text: 'الظهيرة', points: 20 },
+        { text: 'الفجر', points: 15 },
+        { text: 'منتصف الليل', points: 10 }
+      ],
+      order: 7
+    },
+    {
+      id: 'choice8',
+      question: 'ما هو أول شيء تشتريه إذا ربحت مليون دولار؟',
+      answers: [
+        { text: 'بيت', points: 50 },
+        { text: 'سيارة', points: 40 },
+        { text: 'أسافر حول العالم', points: 30 },
+        { text: 'أساعد الأهل', points: 25 },
+        { text: 'أفتح مشروع', points: 20 },
+        { text: 'أشتري ذهب', points: 15 },
+        { text: 'أحتفل', points: 10 }
+      ],
+      order: 8
+    }
+  ]
 }
 
-
-
 ];
-
-
-
-

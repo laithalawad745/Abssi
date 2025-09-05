@@ -16,6 +16,16 @@ export default function QuizGame() {
     { name: 'الفريق الأزرق', color: 'blue', score: 0 }
   ]);
 
+  // متغيرات جديدة لأسئلة الاختيارات
+  const [currentChoiceQuestion, setCurrentChoiceQuestion] = useState(null);
+  const [showChoiceAnswers, setShowChoiceAnswers] = useState(false);
+  const [choiceQuestionOrder, setChoiceQuestionOrder] = useState({
+    red: [1, 3, 5, 7], // أرقام أسئلة الفريق الأحمر
+    blue: [2, 4, 6, 8] // أرقام أسئلة الفريق الأزرق
+  });
+  const [usedChoiceQuestions, setUsedChoiceQuestions] = useState([]);
+  const [selectedAnswers, setSelectedAnswers] = useState({}); // تتبع الإجابات المختارة
+
   const [zoomedImage, setZoomedImage] = useState(null);
 
   const [timer, setTimer] = useState(60);
@@ -36,7 +46,7 @@ export default function QuizGame() {
   const [usingPitHelper, setUsingPitHelper] = useState(null);
   const [teamQuestionMap, setTeamQuestionMap] = useState({});
   const [usedQuestions, setUsedQuestions] = useState(new Set());
-  const [isAbsiMode, setIsAbsiMode] = useState(false); // إضافة متغير لتتبع وضع عبسي
+  const [isAbsiMode, setIsAbsiMode] = useState(false);
 
   const zoomImage = (imageUrl) => {
     setZoomedImage(imageUrl);
@@ -52,6 +62,7 @@ useEffect(() => {
     const savedTeamQuestionMap = localStorage.getItem('quiz-team-question-map');
     const savedTeams = localStorage.getItem('quiz-teams');
     const savedHelpers = localStorage.getItem('quiz-helpers');
+    const savedUsedChoiceQuestions = localStorage.getItem('quiz-used-choice-questions');
     
     if (savedUsedQuestions) {
       setUsedQuestions(new Set(JSON.parse(savedUsedQuestions)));
@@ -65,8 +76,11 @@ useEffect(() => {
     if (savedHelpers) {
       setHelpers(JSON.parse(savedHelpers));
     }
+    if (savedUsedChoiceQuestions) {
+      setUsedChoiceQuestions(JSON.parse(savedUsedChoiceQuestions));
+    }
   } catch (error) {
-    console.log('localStorage      ');
+    console.log('localStorage error');
   }
 }, []);
 
@@ -97,6 +111,13 @@ useEffect(() => {
   } catch (error) {
   }
 }, [helpers]);
+
+useEffect(() => {
+  try {
+    localStorage.setItem('quiz-used-choice-questions', JSON.stringify(usedChoiceQuestions));
+  } catch (error) {
+  }
+}, [usedChoiceQuestions]);
 
   const startTimer = () => {
     setTimer(60);
@@ -136,7 +157,7 @@ useEffect(() => {
   }, [timerInterval]);
 
   const handleTopicSelection = (topic) => {
-    if (selectedTopics.length < 6 && !selectedTopics.find(t => t.id === topic.id)) {
+    if (selectedTopics.length < 8 && !selectedTopics.find(t => t.id === topic.id)) {
       setSelectedTopics([...selectedTopics, topic]);
     }
   };
@@ -146,14 +167,16 @@ useEffect(() => {
   };
 
   const startGame = () => {
-    if (selectedTopics.length === 6) {
+    if (selectedTopics.length === 8) {
       const questionMap = {};
       
       selectedTopics.forEach(topic => {
-        questionMap[topic.id] = {
-          red: { easy: false, medium: false, hard: false },
-          blue: { easy: false, medium: false, hard: false }
-        };
+        if (topic.id !== 'choices') {
+          questionMap[topic.id] = {
+            red: { easy: false, medium: false, hard: false },
+            blue: { easy: false, medium: false, hard: false }
+          };
+        }
       });
       
       setTeamQuestionMap(questionMap);
@@ -161,11 +184,12 @@ useEffect(() => {
     }
   };
 
-  // دالة جديدة لبدء مباراة عبسي
+  // دالة لبدء مباراة عبسي والاختيارات
   const startAbsiMatch = () => {
     const absiTopic = sampleTopics.find(topic => topic.id === 'absi');
-    if (absiTopic) {
-      setSelectedTopics([absiTopic]);
+    const choicesTopic = sampleTopics.find(topic => topic.id === 'choices');
+    if (absiTopic && choicesTopic) {
+      setSelectedTopics([absiTopic, choicesTopic]);
       setIsAbsiMode(true);
       
       const questionMap = {};
@@ -176,6 +200,90 @@ useEffect(() => {
       
       setTeamQuestionMap(questionMap);
       setGameState('playing');
+    }
+  };
+
+  // دالة لاختيار سؤال اختيارات
+  const selectChoiceQuestion = (order) => {
+    const choicesTopic = selectedTopics.find(t => t.id === 'choices');
+    if (!choicesTopic) return;
+
+    // التحقق من أن السؤال للفريق الحالي
+    if (!choiceQuestionOrder[currentTurn].includes(order)) return;
+
+    // التحقق من أن السؤال لم يُستخدم من قبل
+    if (usedChoiceQuestions.includes(order)) return;
+
+    const question = choicesTopic.questions.find(q => q.order === order);
+    if (question) {
+      setCurrentChoiceQuestion(question);
+      setShowChoiceAnswers(false); // إخفاء الأجوبة والنقاط في البداية
+      setSelectedAnswers({}); // إعادة تعيين الإجابات المختارة
+      setUsedChoiceQuestions([...usedChoiceQuestions, order]);
+    }
+  };
+
+  // دالة لإنهاء الإجابات وعرض النتائج
+  const finishChoiceAnswering = () => {
+    setShowChoiceAnswers(true); // إظهار النقاط والأزرار
+  };
+
+  // دالة لمنح النقاط لإجابة معينة
+  const awardChoicePoints = (answerIndex, team) => {
+    if (!currentChoiceQuestion) return;
+    
+    const answerKey = `answer_${answerIndex}`;
+    
+    // التحقق من أن هذه الإجابة لم تُختر من قبل
+    if (selectedAnswers[answerKey]) return;
+    
+    const answer = currentChoiceQuestion.answers[answerIndex];
+    const newTeams = [...teams];
+    const teamIndex = team === 'red' ? 0 : 1;
+    
+    newTeams[teamIndex].score += answer.points;
+    setTeams(newTeams);
+    
+    // تسجيل أن هذه الإجابة تم اختيارها
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [answerKey]: team
+    }));
+  };
+
+  // دالة لمنح النقاط لكلا الفريقين
+  const awardChoicePointsBoth = (answerIndex) => {
+    if (!currentChoiceQuestion) return;
+    
+    const answerKey = `answer_${answerIndex}`;
+    
+    // التحقق من أن هذه الإجابة لم تُختر من قبل
+    if (selectedAnswers[answerKey]) return;
+    
+    const answer = currentChoiceQuestion.answers[answerIndex];
+    const newTeams = [...teams];
+    
+    newTeams[0].score += answer.points; // الفريق الأحمر
+    newTeams[1].score += answer.points; // الفريق الأزرق
+    setTeams(newTeams);
+    
+    // تسجيل أن هذه الإجابة تم اختيارها لكلا الفريقين
+    setSelectedAnswers(prev => ({
+      ...prev,
+      [answerKey]: 'both'
+    }));
+  };
+
+  // دالة لإغلاق سؤال الاختيارات
+  const closeChoiceQuestion = () => {
+    setCurrentChoiceQuestion(null);
+    setShowChoiceAnswers(false);
+    setSelectedAnswers({});
+    setCurrentTurn(currentTurn === 'red' ? 'blue' : 'red');
+    
+    // التحقق من انتهاء جميع أسئلة الاختيارات
+    if (usedChoiceQuestions.length >= 8) {
+      checkGameEnd();
     }
   };
 
@@ -330,16 +438,22 @@ useEffect(() => {
 
   const checkGameEnd = () => {
     let totalAnsweredQuestions = 0;
-    const totalPossibleQuestions = selectedTopics.length * 2 * 3; 
+    let totalPossibleQuestions = 0;
 
     selectedTopics.forEach(topic => {
-      ['red', 'blue'].forEach(team => {
-        ['easy', 'medium', 'hard'].forEach(difficulty => {
-          if (teamQuestionMap[topic.id]?.[team]?.[difficulty] === true) {
-            totalAnsweredQuestions += 1;
-          }
+      if (topic.id === 'choices') {
+        totalPossibleQuestions += 8; // 8 أسئلة اختيارات
+        totalAnsweredQuestions += usedChoiceQuestions.length;
+      } else {
+        totalPossibleQuestions += 6; // 6 أسئلة عادية (3 مستويات × 2 فريق)
+        ['red', 'blue'].forEach(team => {
+          ['easy', 'medium', 'hard'].forEach(difficulty => {
+            if (teamQuestionMap[topic.id]?.[team]?.[difficulty] === true) {
+              totalAnsweredQuestions += 1;
+            }
+          });
         });
-      });
+      }
     });
 
     if (totalAnsweredQuestions >= totalPossibleQuestions) {
@@ -371,7 +485,11 @@ useEffect(() => {
     setTeamQuestionMap({});
     setUsingPitHelper(null);
     setZoomedImage(null);
-    setIsAbsiMode(false); // إعادة تعيين وضع عبسي
+    setIsAbsiMode(false);
+    setCurrentChoiceQuestion(null);
+    setShowChoiceAnswers(false);
+    setUsedChoiceQuestions([]);
+    setSelectedAnswers({});
     resetTimer();
     setHelpers({
       red: { number2: true, pit: true },
@@ -382,23 +500,20 @@ useEffect(() => {
       { name: 'الفريق الأزرق', color: 'blue', score: 0 }
     ]);
 
-    // مسح الأسئلة المستخدمة إذا طُلب ذلك
     if (clearUsedQuestions) {
       setUsedQuestions(new Set());
       try {
         localStorage.removeItem('quiz-used-questions');
+        localStorage.removeItem('quiz-used-choice-questions');
       } catch (error) {
-        // تجاهل الأخطاء إذا كان localStorage غير متاح
       }
     }
 
-    // مسح بيانات localStorage الأخرى
     try {
       localStorage.removeItem('quiz-team-question-map');
       localStorage.removeItem('quiz-teams');
       localStorage.removeItem('quiz-helpers');
     } catch (error) {
-      // تجاهل الأخطاء إذا كان localStorage غير متاح
     }
   };
 
@@ -409,12 +524,12 @@ useEffect(() => {
   };
 
   useEffect(() => {
-    if (showConfirmReset || zoomedImage) {
+    if (showConfirmReset || zoomedImage || currentChoiceQuestion) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-  }, [showConfirmReset, zoomedImage]);
+  }, [showConfirmReset, zoomedImage, currentChoiceQuestion]);
 
   if (gameState === 'setup') {
     const stats = getUsedQuestionsStats();
@@ -443,16 +558,16 @@ useEffect(() => {
             قومبز جيم 
           </h1>
           
-          {/* زر مباراة عبسي */}
+          {/* زر مباراة عبسي والاختيارات */}
           <div className="space-y-4">
             <button
               onClick={startAbsiMatch}
               className="bg-gradient-to-r cursor-pointer from-purple-600 via-pink-500 to-blue-500 hover:from-purple-700 hover:via-pink-600 hover:to-blue-600 text-white px-8 md:px-12 lg:px-16 py-4 md:py-6 lg:py-8 rounded-2xl font-bold text-xl md:text-3xl lg:text-4xl shadow-2xl shadow-purple-500/30 transition-all duration-300 hover:scale-105 transform border-2 border-purple-400/50 hover:border-pink-400/70"
             >
-              مباراة عبسي 
+              مباراة عبسي + الاختيارات
             </button>
             <p className="text-slate-300 text-sm md:text-base lg:text-lg max-w-md mx-auto">
-              ابدأ مباراة سريعة بأسئلة لايفات عبسي فقط
+              ابدأ مباراة تحتوي على أسئلة لايفات عبسي + أسئلة الاختيارات
             </p>
           </div>
         </div>
@@ -475,7 +590,7 @@ useEffect(() => {
             {isAbsiMode && (
               <div className="mb-6">
                 <span className="inline-block px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-full">
-                  🏆 مباراة عبسي 🏆
+                  🏆 مباراة عبسي + الاختيارات 🏆
                 </span>
               </div>
             )}
@@ -530,23 +645,25 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-2 md:p-4 select-none">
-      {currentQuestion && (
+      {(currentQuestion || currentChoiceQuestion) && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-700 p-3">
           <div className="text-center">
             <div className={`inline-flex items-center px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold text-base md:text-xl shadow-lg transition-all duration-300 ${
-              timer <= 10 
+              currentChoiceQuestion 
+                ? 'bg-gradient-to-r from-purple-500 to-violet-500 text-white'
+                : timer <= 10 
                 ? 'bg-gradient-to-r from-red-600 to-red-700 text-white animate-pulse' 
                 : timer <= 20
                 ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
                 : 'bg-gradient-to-r from-green-500 to-green-600 text-white'
             }`}>
-              الوقت المتبقي: {timer} ثانية
+              {currentChoiceQuestion ? 'سؤال اختيارات' : `الوقت المتبقي: ${timer} ثانية`}
             </div>
           </div>
         </div>
       )}
 
-      <div className={`max-w-7xl mx-auto ${currentQuestion ? 'pt-16 md:pt-20' : ''}`}>
+      <div className={`max-w-7xl mx-auto ${(currentQuestion || currentChoiceQuestion) ? 'pt-16 md:pt-20' : ''}`}>
         <div className="text-center mb-4 md:mb-6">
           <div className={`inline-flex items-center px-4 md:px-8 py-2 md:py-4 rounded-2xl font-bold text-lg md:text-2xl shadow-lg transition-all duration-500 ${
             currentTurn === 'red' 
@@ -561,7 +678,7 @@ useEffect(() => {
             )}
             {isAbsiMode && (
               <span className="ml-2 md:ml-4 px-2 md:px-3 py-1 bg-yellow-500 rounded-full text-xs md:text-sm">
-                🏆 مباراة عبسي
+                🏆 عبسي + اختيارات
               </span>
             )}
           </div>
@@ -574,9 +691,9 @@ useEffect(() => {
             <div className="flex justify-center gap-2 md:gap-3">
               <button
                 onClick={() => useNumber2Helper('red')}
-                disabled={!helpers.red.number2 || currentTurn !== 'red' || currentQuestion !== null}
+                disabled={!helpers.red.number2 || currentTurn !== 'red' || currentQuestion !== null || currentChoiceQuestion !== null}
                 className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all duration-300 text-sm md:text-base ${
-                  helpers.red.number2 && currentTurn === 'red' && currentQuestion === null
+                  helpers.red.number2 && currentTurn === 'red' && currentQuestion === null && currentChoiceQuestion === null
                     ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
@@ -585,9 +702,9 @@ useEffect(() => {
               </button>
               <button
                 onClick={() => usePitHelper('red')}
-                disabled={!helpers.red.pit || currentTurn !== 'red' || currentQuestion !== null}
+                disabled={!helpers.red.pit || currentTurn !== 'red' || currentQuestion !== null || currentChoiceQuestion !== null}
                 className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all duration-300 text-sm md:text-base ${
-                  helpers.red.pit && currentTurn === 'red' && currentQuestion === null
+                  helpers.red.pit && currentTurn === 'red' && currentQuestion === null && currentChoiceQuestion === null
                     ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
@@ -602,9 +719,9 @@ useEffect(() => {
             <div className="flex justify-center gap-2 md:gap-3">
               <button
                 onClick={() => useNumber2Helper('blue')}
-                disabled={!helpers.blue.number2 || currentTurn !== 'blue' || currentQuestion !== null}
+                disabled={!helpers.blue.number2 || currentTurn !== 'blue' || currentQuestion !== null || currentChoiceQuestion !== null}
                 className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all duration-300 text-sm md:text-base ${
-                  helpers.blue.number2 && currentTurn === 'blue' && currentQuestion === null
+                  helpers.blue.number2 && currentTurn === 'blue' && currentQuestion === null && currentChoiceQuestion === null
                     ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
@@ -613,9 +730,9 @@ useEffect(() => {
               </button>
               <button
                 onClick={() => usePitHelper('blue')}
-                disabled={!helpers.blue.pit || currentTurn !== 'blue' || currentQuestion !== null}
+                disabled={!helpers.blue.pit || currentTurn !== 'blue' || currentQuestion !== null || currentChoiceQuestion !== null}
                 className={`px-3 md:px-4 py-2 rounded-lg font-bold transition-all duration-300 text-sm md:text-base ${
-                  helpers.blue.pit && currentTurn === 'blue' && currentQuestion === null
+                  helpers.blue.pit && currentTurn === 'blue' && currentQuestion === null && currentChoiceQuestion === null
                     ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
@@ -697,19 +814,19 @@ useEffect(() => {
             )}
             
             {currentQuestion.hasAudio && (
-  <div className="flex justify-center mb-4 md:mb-8">
-    <audio 
-      controls
-      src={currentQuestion.audioUrl}
-      className="w-full max-w-md"
-      onError={(e) => {
-        console.error('فشل في تحميل الصوت:', currentQuestion.audioUrl);
-      }}
-    >
-      متصفحك لا يدعم تشغيل الصوت
-    </audio>
-  </div>
-)}
+              <div className="flex justify-center mb-4 md:mb-8">
+                <audio 
+                  controls
+                  src={currentQuestion.audioUrl}
+                  className="w-full max-w-md"
+                  onError={(e) => {
+                    console.error('فشل في تحميل الصوت:', currentQuestion.audioUrl);
+                  }}
+                >
+                  متصفحك لا يدعم تشغيل الصوت
+                </audio>
+              </div>
+            )}
             
             {!showAnswer ? (
               <div className="text-center">
@@ -752,83 +869,264 @@ useEffect(() => {
           </div>
         )}
 
-        <div className="bg-slate-800/50 backdrop-blur-lg rounded-2xl p-3 md:p-8 shadow-2xl border border-slate-700">
-          <div className={`grid gap-2 md:gap-6 ${isAbsiMode ? 'grid-cols-1 max-w-md mx-auto' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'}`}>
-            {selectedTopics.map(topic => (
-              <div key={topic.id} className="text-center">
-                <h3 className="font-bold mb-2 md:mb-4 p-2 md:p-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl shadow-lg text-xs md:text-sm">
-                  {topic.name}
-                </h3>
-                <div className="grid grid-cols-2 gap-1 md:gap-2">
-                  <div className="space-y-1 md:space-y-2">
-                    <div className="text-xs font-bold text-red-400 mb-1">أحمر</div>
-                    {['easy', 'medium', 'hard'].map(difficulty => {
-                      const points = difficulty === 'easy' ? 200 : difficulty === 'medium' ? 400 : 600;
-                      const hasTeamUsedThisLevel = hasUsedQuestionsInLevel(topic.id, difficulty, 'red');
-                      const isAvailable = isQuestionAvailable(topic.id, difficulty, 'red');
-                      const availableCount = getAvailableQuestionsCount(topic.id, difficulty, 'red');
-                      
-                      const isDisabled = !isAvailable || currentQuestion !== null || currentTurn !== 'red' || hasTeamUsedThisLevel;
-                      
-                      return (
-                        <button
-                          key={`${topic.id}-red-${difficulty}`}
-                          onClick={() => selectRandomQuestionForTeam(topic.id, difficulty, 'red')}
-                          disabled={isDisabled}
-                          className={`w-full p-2 md:p-3 text-xs md:text-sm rounded-lg font-bold transition-all duration-300 border-2 ${
-                            hasTeamUsedThisLevel
-                              ? 'bg-red-800/60 text-red-200 border-red-600/40 opacity-80 cursor-not-allowed' 
-                              : !isAvailable
-                              ? 'bg-slate-700/70 text-slate-400 cursor-not-allowed border-slate-500/50 opacity-60'
-                              : currentTurn === 'red' && currentQuestion === null
-                              ? 'bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg border-red-400 hover:scale-105'
-                              : 'bg-red-500/30 text-red-300 cursor-not-allowed border-red-500/30 opacity-75'
-                          }`}
-                          title={hasTeamUsedThisLevel ? 'تم استخدامه' : `أسئلة متاحة: ${availableCount}`}
-                        >
-                          {hasTeamUsedThisLevel ? '✓' : !isAvailable ? '🚫' : `${points}`}
-                        </button>
-                      );
-                    })}
-                  </div>
+        {/* عرض أسئلة الاختيارات المنبثقة */}
+        {currentChoiceQuestion && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-800/95 backdrop-blur-lg rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-600 shadow-2xl">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">{currentChoiceQuestion.question}</h2>
+                <span className="inline-block px-4 py-2 bg-gradient-to-r from-purple-500 to-violet-500 text-white font-bold rounded-full">
+                  سؤال رقم {currentChoiceQuestion.order}
+                </span>
+              </div>
+
+              {!showChoiceAnswers ? (
+                // المرحلة الأولى: عرض مربعات فارغة مرقمة فقط - بدون نصوص الإجابات
+                <div className="space-y-4 mb-6">
+                  {currentChoiceQuestion.answers.map((answer, index) => (
+                    <div key={index} className="bg-slate-700/50 backdrop-blur-lg rounded-xl p-6 border border-slate-600">
+                      <div className="text-center">
+                        <span className="text-white font-bold text-2xl">{index + 1}</span>
+                      </div>
+                    </div>
+                  ))}
                   
-                  <div className="space-y-1 md:space-y-2">
-                    <div className="text-xs font-bold text-blue-400 mb-1">أزرق</div>
-                    {['easy', 'medium', 'hard'].map(difficulty => {
-                      const points = difficulty === 'easy' ? 200 : difficulty === 'medium' ? 400 : 600;
-                      const hasTeamUsedThisLevel = hasUsedQuestionsInLevel(topic.id, difficulty, 'blue');
-                      const isAvailable = isQuestionAvailable(topic.id, difficulty, 'blue');
-                      const availableCount = getAvailableQuestionsCount(topic.id, difficulty, 'blue');
-                      
-                      const isDisabled = !isAvailable || currentQuestion !== null || currentTurn !== 'blue' || hasTeamUsedThisLevel;
-                      
-                      return (
-                        <button
-                          key={`${topic.id}-blue-${difficulty}`}
-                          onClick={() => selectRandomQuestionForTeam(topic.id, difficulty, 'blue')}
-                          disabled={isDisabled}
-                          className={`w-full p-2 md:p-3 text-xs md:text-sm rounded-lg font-bold transition-all duration-300 border-2 ${
-                            hasTeamUsedThisLevel
-                              ? 'bg-blue-800/60 text-blue-200 border-blue-600/40 opacity-80 cursor-not-allowed'
-                              : !isAvailable
-                              ? 'bg-slate-700/70 text-slate-400 cursor-not-allowed border-slate-500/50 opacity-60'
-                              : currentTurn === 'blue' && currentQuestion === null
-                              ? 'bg-gradient-to-br from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg border-blue-400 hover:scale-105'
-                              : 'bg-blue-500/30 text-blue-300 cursor-not-allowed border-blue-500/30 opacity-75'
-                          }`}
-                          title={hasTeamUsedThisLevel ? 'تم استخدامه' : `أسئلة متاحة: ${availableCount}`}
-                        >
-                          {hasTeamUsedThisLevel ? '✓' : !isAvailable ? '🚫' : `${points}`}
-                        </button>
-                      );
-                    })}
+                  <div className="text-center mt-8">
+                    <button
+                      onClick={finishChoiceAnswering}
+                      className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg transition-all duration-300"
+                    >
+                      انتهاء
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          
-                    </div>
+              ) : (
+                // المرحلة الثانية: عرض النقاط والأزرار بعد الضغط على انتهاء
+                <div className="space-y-4 mb-6">
+                  {currentChoiceQuestion.answers.map((answer, index) => {
+                    const answerKey = `answer_${index}`;
+                    const isSelected = selectedAnswers[answerKey];
+                    
+                    return (
+                      <div key={index} className="bg-slate-700/50 backdrop-blur-lg rounded-xl p-4 border border-slate-600">
+                        <div className="text-center mb-4">
+                          <span className="text-white font-semibold text-lg">{answer.text}</span>
+                          <div className="mt-2">
+                            <span className="inline-block px-3 py-1 bg-yellow-500 text-black font-bold rounded-full">
+                              {answer.points} نقطة
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <button
+                            onClick={() => awardChoicePoints(index, 'red')}
+                            disabled={isSelected}
+                            className={`px-3 py-2 rounded-lg font-bold text-sm transition-all duration-300 ${
+                              isSelected === 'red'
+                                ? 'bg-red-700 text-red-200 cursor-not-allowed opacity-75' 
+                                : isSelected
+                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white'
+                            }`}
+                          >
+                            الفريق الأحمر {isSelected === 'red' && '✓'}
+                          </button>
+                          <button
+                            onClick={() => awardChoicePoints(index, 'blue')}
+                            disabled={isSelected}
+                            className={`px-3 py-2 rounded-lg font-bold text-sm transition-all duration-300 ${
+                              isSelected === 'blue'
+                                ? 'bg-blue-700 text-blue-200 cursor-not-allowed opacity-75' 
+                                : isSelected
+                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white'
+                            }`}
+                          >
+                            الفريق الأزرق {isSelected === 'blue' && '✓'}
+                          </button>
+                          <button
+                            onClick={() => awardChoicePointsBoth(index)}
+                            disabled={isSelected}
+                            className={`px-3 py-2 rounded-lg font-bold text-sm transition-all duration-300 ${
+                              isSelected === 'both'
+                                ? 'bg-purple-700 text-purple-200 cursor-not-allowed opacity-75' 
+                                : isSelected
+                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white'
+                            }`}
+                          >
+                            كليهما {isSelected === 'both' && '✓'}
+                          </button>
+                          <button
+                            disabled={isSelected}
+                            className={`px-3 py-2 rounded-lg font-bold text-sm transition-all duration-300 ${
+                              isSelected
+                                ? 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-75'
+                                : 'bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white'
+                            }`}
+                          >
+                            لا أحد
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  <div className="text-center mt-8">
+                    <button
+                      onClick={closeChoiceQuestion}
+                      className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg transition-all duration-300"
+                    >
+                      إغلاق
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
+        <div className="bg-slate-800/50 backdrop-blur-lg rounded-2xl p-3 md:p-8 shadow-2xl border border-slate-700">
+          <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
+            {selectedTopics.map(topic => {
+              if (topic.id === 'choices') {
+                // عرض أسئلة الاختيارات بنفس شكل لايفات عبسي
+                return (
+                  <div key={topic.id} className="text-center">
+                    <h3 className="font-bold mb-4 p-3 bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-xl shadow-lg text-sm md:text-base">
+                      {topic.name}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <div className="text-xs font-bold text-red-400 mb-1">أحمر</div>
+                        {[1, 3, 5, 7].map(order => {
+                          const isUsed = usedChoiceQuestions.includes(order);
+                          const canSelect = currentTurn === 'red' && !isUsed && !currentQuestion && !currentChoiceQuestion;
+                          
+                          return (
+                            <button
+                              key={`choice-red-${order}`}
+                              onClick={() => selectChoiceQuestion(order)}
+                              disabled={!canSelect}
+                              className={`w-full p-2 md:p-3 text-xs md:text-sm rounded-lg font-bold transition-all duration-300 border-2 ${
+                                isUsed
+                                  ? 'bg-red-800/60 text-red-200 border-red-600/40 opacity-80 cursor-not-allowed' 
+                                  : canSelect
+                                  ? 'bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg border-red-400 hover:scale-105'
+                                  : 'bg-red-500/30 text-red-300 cursor-not-allowed border-red-500/30 opacity-75'
+                              }`}
+                            >
+                              {isUsed ? '✓' : order}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="text-xs font-bold text-blue-400 mb-1">أزرق</div>
+                        {[2, 4, 6, 8].map(order => {
+                          const isUsed = usedChoiceQuestions.includes(order);
+                          const canSelect = currentTurn === 'blue' && !isUsed && !currentQuestion && !currentChoiceQuestion;
+                          
+                          return (
+                            <button
+                              key={`choice-blue-${order}`}
+                              onClick={() => selectChoiceQuestion(order)}
+                              disabled={!canSelect}
+                              className={`w-full p-2 md:p-3 text-xs md:text-sm rounded-lg font-bold transition-all duration-300 border-2 ${
+                                isUsed
+                                  ? 'bg-blue-800/60 text-blue-200 border-blue-600/40 opacity-80 cursor-not-allowed'
+                                  : canSelect
+                                  ? 'bg-gradient-to-br from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg border-blue-400 hover:scale-105'
+                                  : 'bg-blue-500/30 text-blue-300 cursor-not-allowed border-blue-500/30 opacity-75'
+                              }`}
+                            >
+                              {isUsed ? '✓' : order}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else {
+                // عرض الأسئلة العادية (لايفات عبسي)
+                return (
+                  <div key={topic.id} className="text-center">
+                    <h3 className="font-bold mb-4 p-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl shadow-lg text-sm md:text-base">
+                      {topic.name}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <div className="text-xs font-bold text-red-400 mb-1">أحمر</div>
+                        {['easy', 'medium', 'hard'].map(difficulty => {
+                          const points = difficulty === 'easy' ? 200 : difficulty === 'medium' ? 400 : 600;
+                          const hasTeamUsedThisLevel = hasUsedQuestionsInLevel(topic.id, difficulty, 'red');
+                          const isAvailable = isQuestionAvailable(topic.id, difficulty, 'red');
+                          const availableCount = getAvailableQuestionsCount(topic.id, difficulty, 'red');
+                          
+                          const isDisabled = !isAvailable || currentQuestion !== null || currentChoiceQuestion !== null || currentTurn !== 'red' || hasTeamUsedThisLevel;
+                          
+                          return (
+                            <button
+                              key={`${topic.id}-red-${difficulty}`}
+                              onClick={() => selectRandomQuestionForTeam(topic.id, difficulty, 'red')}
+                              disabled={isDisabled}
+                              className={`w-full p-2 md:p-3 text-xs md:text-sm rounded-lg font-bold transition-all duration-300 border-2 ${
+                                hasTeamUsedThisLevel
+                                  ? 'bg-red-800/60 text-red-200 border-red-600/40 opacity-80 cursor-not-allowed' 
+                                  : !isAvailable
+                                  ? 'bg-slate-700/70 text-slate-400 cursor-not-allowed border-slate-500/50 opacity-60'
+                                  : currentTurn === 'red' && currentQuestion === null && currentChoiceQuestion === null
+                                  ? 'bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg border-red-400 hover:scale-105'
+                                  : 'bg-red-500/30 text-red-300 cursor-not-allowed border-red-500/30 opacity-75'
+                              }`}
+                              title={hasTeamUsedThisLevel ? 'تم استخدامه' : `أسئلة متاحة: ${availableCount}`}
+                            >
+                              {hasTeamUsedThisLevel ? '✓' : !isAvailable ? '🚫' : `${points}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="text-xs font-bold text-blue-400 mb-1">أزرق</div>
+                        {['easy', 'medium', 'hard'].map(difficulty => {
+                          const points = difficulty === 'easy' ? 200 : difficulty === 'medium' ? 400 : 600;
+                          const hasTeamUsedThisLevel = hasUsedQuestionsInLevel(topic.id, difficulty, 'blue');
+                          const isAvailable = isQuestionAvailable(topic.id, difficulty, 'blue');
+                          const availableCount = getAvailableQuestionsCount(topic.id, difficulty, 'blue');
+                          
+                          const isDisabled = !isAvailable || currentQuestion !== null || currentChoiceQuestion !== null || currentTurn !== 'blue' || hasTeamUsedThisLevel;
+                          
+                          return (
+                            <button
+                              key={`${topic.id}-blue-${difficulty}`}
+                              onClick={() => selectRandomQuestionForTeam(topic.id, difficulty, 'blue')}
+                              disabled={isDisabled}
+                              className={`w-full p-2 md:p-3 text-xs md:text-sm rounded-lg font-bold transition-all duration-300 border-2 ${
+                                hasTeamUsedThisLevel
+                                  ? 'bg-blue-800/60 text-blue-200 border-blue-600/40 opacity-80 cursor-not-allowed'
+                                  : !isAvailable
+                                  ? 'bg-slate-700/70 text-slate-400 cursor-not-allowed border-slate-500/50 opacity-60'
+                                  : currentTurn === 'blue' && currentQuestion === null && currentChoiceQuestion === null
+                                  ? 'bg-gradient-to-br from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg border-blue-400 hover:scale-105'
+                                  : 'bg-blue-500/30 text-blue-300 cursor-not-allowed border-blue-500/30 opacity-75'
+                              }`}
+                              title={hasTeamUsedThisLevel ? 'تم استخدامه' : `أسئلة متاحة: ${availableCount}`}
+                            >
+                              {hasTeamUsedThisLevel ? '✓' : !isAvailable ? '🚫' : `${points}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+            })}
+          </div>
         </div>
 
         <div className="text-center mt-4 md:mt-8">
@@ -888,12 +1186,3 @@ useEffect(() => {
     </div>
   );
 }
-
-
-
-  //     <h1 className="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 text-center mb-6 md:mb-8">
-  //           الى هنا تنتهي لعبتنا ان شاء الله تكون عجبتكم
-  // </h1> 
-  //       <h1 className="text-2xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 text-center mb-6 md:mb-8">
-  //           اذا ما عجبتكم لطيزي
-  // </h1> 
