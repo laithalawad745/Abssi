@@ -25,17 +25,49 @@ export default function GameSetup({ startAbsiMatch }) {
             قومبز جيم 
           </h1>
           
-          {/* زر مباراة عبسي والاختيارات */}
+          {/* ✅ تحديث وصف المباراة */}
           <div className="space-y-4">
             <button
               onClick={startAbsiMatch}
               className="bg-gradient-to-r cursor-pointer from-purple-600 via-pink-500 to-blue-500 hover:from-purple-700 hover:via-pink-600 hover:to-blue-600 text-white px-8 md:px-12 lg:px-16 py-4 md:py-6 lg:py-8 rounded-2xl font-bold text-xl md:text-3xl lg:text-4xl shadow-2xl shadow-purple-500/30 transition-all duration-300 hover:scale-105 transform border-2 border-purple-400/50 hover:border-pink-400/70"
             >
-              مباراة عبسي + الاختيارات
+              مباراة كاملة
             </button>
             <p className="text-slate-300 text-sm md:text-base lg:text-lg max-w-md mx-auto">
-              ابدأ مباراة تحتوي على أسئلة لايفات عبسي + أسئلة الاختيارات
+              {/* ✅ تحديث الوصف ليشمل فقرة "ولا كلمة" */}
+              ابدأ مباراة تحتوي على:
+              <br />
+              🎬 لايفات عبسي
+              <br />
+              🎯 أسئلة الاختيارات  
+              <br />
+              📱 ولا كلمة (QR codes)
             </p>
+          </div>
+
+          {/* ✅ إضافة معلومات إضافية */}
+          <div className="mt-8 p-4 bg-slate-800/50 backdrop-blur-lg rounded-xl border border-slate-600 max-w-2xl">
+            <h3 className="text-lg md:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-400 mb-3">
+              ميزات اللعبة:
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-slate-300 text-sm md:text-base">
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✓</span>
+                <span>حفظ الأسئلة المستخدمة</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✓</span>
+                <span>وسائل خاصة لكل فريق</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✓</span>
+                <span>صور وفيديوهات وأصوات</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-400">✓</span>
+                <span>أكواد QR تفاعلية</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -6,7 +6,6 @@ import { sampleTopics } from '../app/data/gameData';
 
 // Import all components
 import GameSetup from './GameSetup';
-import GameTimer from './GameTimer';
 import TeamScores from './TeamScores';
 import TeamHelpers from './TeamHelpers';
 import QuestionDisplay from './QuestionDisplay';
@@ -40,9 +39,12 @@ export default function QuizGame() {
 
   // Other State
   const [zoomedImage, setZoomedImage] = useState(null);
-  const [timer, setTimer] = useState(60);
+  
+  // Timer State
+  const [timer, setTimer] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [timerInterval, setTimerInterval] = useState(null);
+  
   const [helpers, setHelpers] = useState({
     red: { number2: true, pit: true },
     blue: { number2: true, pit: true }
@@ -112,19 +114,13 @@ export default function QuizGame() {
 
   // Timer Functions
   const startTimer = () => {
-    setTimer(60);
-    setTimerActive(true);
-    const interval = setInterval(() => {
-      setTimer(prev => {
-        if (prev <= 1) {
-          setTimerActive(false);
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    setTimerInterval(interval);
+    if (!timerActive) {
+      setTimerActive(true);
+      const interval = setInterval(() => {
+        setTimer(prev => prev + 1);
+      }, 1000);
+      setTimerInterval(interval);
+    }
   };
 
   const stopTimer = () => {
@@ -135,9 +131,17 @@ export default function QuizGame() {
     }
   };
 
+  const toggleTimer = () => {
+    if (timerActive) {
+      stopTimer();
+    } else {
+      startTimer();
+    }
+  };
+
   const resetTimer = () => {
     stopTimer();
-    setTimer(45);
+    setTimer(0);
   };
 
   useEffect(() => {
@@ -152,12 +156,18 @@ export default function QuizGame() {
   const startAbsiMatch = () => {
     const absiTopic = sampleTopics.find(topic => topic.id === 'absi');
     const choicesTopic = sampleTopics.find(topic => topic.id === 'choices');
-    if (absiTopic && choicesTopic) {
-      setSelectedTopics([absiTopic, choicesTopic]);
+    const qrTopic = sampleTopics.find(topic => topic.id === 'qr_game');
+    
+    if (absiTopic && choicesTopic && qrTopic) {
+      setSelectedTopics([absiTopic, choicesTopic, qrTopic]);
       setIsAbsiMode(true);
       
       const questionMap = {};
       questionMap[absiTopic.id] = {
+        red: { easy: false, medium: false, hard: false },
+        blue: { easy: false, medium: false, hard: false }
+      };
+      questionMap[qrTopic.id] = {
         red: { easy: false, medium: false, hard: false },
         blue: { easy: false, medium: false, hard: false }
       };
@@ -180,6 +190,11 @@ export default function QuizGame() {
       setShowChoiceAnswers(false);
       setSelectedAnswers({});
       setUsedChoiceQuestions([...usedChoiceQuestions, order]);
+      
+      // إيقاف التوقيت عند بدء سؤال اختيارات
+      if (timerActive) {
+        stopTimer();
+      }
     }
   };
 
@@ -231,9 +246,9 @@ export default function QuizGame() {
     setSelectedAnswers({});
     setCurrentTurn(currentTurn === 'red' ? 'blue' : 'red');
     
-    if (usedChoiceQuestions.length >= 8) {
+    setTimeout(() => {
       checkGameEnd();
-    }
+    }, 100);
   };
 
   // Helper Functions
@@ -282,6 +297,7 @@ export default function QuizGame() {
     return availableQuestions.length;
   };
 
+  // ✅ إصلاح بدء التوقيت التلقائي عند اختيار السؤال
   const selectRandomQuestionForTeam = (topicId, difficulty, team) => {
     if (team !== currentTurn) return;
 
@@ -315,12 +331,18 @@ export default function QuizGame() {
 
     setCurrentQuestion(selectedQuestion);
     setShowAnswer(false);
-    startTimer();
+    
+    // ✅ إعادة تعيين التوقيت وبدء العد تلقائياً
+    console.log('Starting timer automatically...');
+    stopTimer(); // إيقاف أي توقيت سابق
+    setTimer(0); // إعادة إلى الصفر
+    setTimeout(() => {
+      startTimer(); // بدء العد بعد delay قصير
+    }, 100);
   };
 
   const finishAnswering = () => {
     setShowAnswer(true);
-    stopTimer();
   };
 
   const awardPoints = (teamIndex) => {
@@ -351,7 +373,6 @@ export default function QuizGame() {
       setCurrentTurn(currentTurn === 'red' ? 'blue' : 'red');
       setCurrentQuestion(null);
       setShowAnswer(false);
-      resetTimer();
       
       setTimeout(() => {
         checkGameEnd();
@@ -368,7 +389,6 @@ export default function QuizGame() {
       setCurrentTurn(currentTurn === 'red' ? 'blue' : 'red');
       setCurrentQuestion(null);
       setShowAnswer(false);
-      resetTimer();
       
       setTimeout(() => {
         checkGameEnd();
@@ -382,10 +402,19 @@ export default function QuizGame() {
 
     selectedTopics.forEach(topic => {
       if (topic.id === 'choices') {
-        totalPossibleQuestions += 8;
+        totalPossibleQuestions += Math.min(8, topic.questions.length);
         totalAnsweredQuestions += usedChoiceQuestions.length;
-      } else {
-        totalPossibleQuestions += 6;
+      } else if (topic.id === 'absi' || topic.id === 'qr_game') {
+        const availableQuestionsForTopic = topic.questions.filter(q => !usedQuestions.has(q.id));
+        
+        const easyQuestions = availableQuestionsForTopic.filter(q => q.difficulty === 'easy').length;
+        const mediumQuestions = availableQuestionsForTopic.filter(q => q.difficulty === 'medium').length;
+        const hardQuestions = availableQuestionsForTopic.filter(q => q.difficulty === 'hard').length;
+        
+        if (easyQuestions > 0) totalPossibleQuestions += 2;
+        if (mediumQuestions > 0) totalPossibleQuestions += 2;
+        if (hardQuestions > 0) totalPossibleQuestions += 2;
+        
         ['red', 'blue'].forEach(team => {
           ['easy', 'medium', 'hard'].forEach(difficulty => {
             if (teamQuestionMap[topic.id]?.[team]?.[difficulty] === true) {
@@ -398,7 +427,7 @@ export default function QuizGame() {
 
     if (totalAnsweredQuestions >= totalPossibleQuestions) {
       setGameState('finished');
-      resetTimer();
+      stopTimer();
     }
   };
 
@@ -420,7 +449,9 @@ export default function QuizGame() {
     setShowChoiceAnswers(false);
     setUsedChoiceQuestions([]);
     setSelectedAnswers({});
+    
     resetTimer();
+    
     setHelpers({
       red: { number2: true, pit: true },
       blue: { number2: true, pit: true }
@@ -432,6 +463,7 @@ export default function QuizGame() {
 
     if (clearUsedQuestions) {
       setUsedQuestions(new Set());
+      setUsedChoiceQuestions([]);
       try {
         localStorage.removeItem('quiz-used-questions');
         localStorage.removeItem('quiz-used-choice-questions');
@@ -464,68 +496,98 @@ export default function QuizGame() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-2 md:p-4 select-none">
-      <GameTimer timer={timer} currentChoiceQuestion={currentChoiceQuestion} />
-
-      <div className={`max-w-7xl mx-auto ${(currentQuestion || currentChoiceQuestion) ? 'pt-16 md:pt-20' : ''}`}>
+    <>
+      {/* ✅ ناف بار صغير - التوقيت ودور الفريق فقط */}
+      <div 
+        className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-700"
+        style={{ position: 'fixed', top: 0, zIndex: 9999 }}
+      >
         <TeamScores 
           teams={teams} 
           currentTurn={currentTurn} 
           usingPitHelper={usingPitHelper} 
-          isAbsiMode={isAbsiMode} 
-        />
-
-        <TeamHelpers 
-          helpers={helpers}
-          currentTurn={currentTurn}
-          currentQuestion={currentQuestion}
+          isAbsiMode={isAbsiMode}
+          timer={timer}
+          timerActive={timerActive}
+          toggleTimer={toggleTimer}
+          resetTimer={resetTimer}
           currentChoiceQuestion={currentChoiceQuestion}
-          useNumber2Helper={useNumber2Helper}
-          usePitHelper={usePitHelper}
-        />
-
-        <QuestionDisplay 
-          currentQuestion={currentQuestion}
-          showAnswer={showAnswer}
-          usingPitHelper={usingPitHelper}
-          finishAnswering={finishAnswering}
-          awardPoints={awardPoints}
-          noCorrectAnswer={noCorrectAnswer}
-          zoomImage={zoomImage}
-        />
-
-        <ChoiceQuestion 
-          currentChoiceQuestion={currentChoiceQuestion}
-          showChoiceAnswers={showChoiceAnswers}
-          selectedAnswers={selectedAnswers}
-          finishChoiceAnswering={finishChoiceAnswering}
-          awardChoicePoints={awardChoicePoints}
-          awardChoicePointsBoth={awardChoicePointsBoth}
-          closeChoiceQuestion={closeChoiceQuestion}
-        />
-
-        <TopicGrid 
-          selectedTopics={selectedTopics}
-          currentTurn={currentTurn}
-          currentQuestion={currentQuestion}
-          currentChoiceQuestion={currentChoiceQuestion}
-          usedChoiceQuestions={usedChoiceQuestions}
-          selectChoiceQuestion={selectChoiceQuestion}
-          selectRandomQuestionForTeam={selectRandomQuestionForTeam}
-          isQuestionAvailable={isQuestionAvailable}
-          getAvailableQuestionsCount={getAvailableQuestionsCount}
-          hasUsedQuestionsInLevel={hasUsedQuestionsInLevel}
-          setShowConfirmReset={setShowConfirmReset}
-        />
-
-        <ImageModal zoomedImage={zoomedImage} closeZoomedImage={closeZoomedImage} />
-        
-        <ConfirmModal 
-          showConfirmReset={showConfirmReset}
-          setShowConfirmReset={setShowConfirmReset}
-          resetGame={resetGame}
+          isNavBar={true} // ✅ عرض الناف بار فقط
         />
       </div>
-    </div>
+
+      {/* المحتوى الرئيسي */}
+      <div 
+        className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 select-none"
+        style={{ paddingTop: '80px' }} // ✅ مساحة أقل للناف بار الصغير
+      >
+        <div className="max-w-7xl mx-auto p-2 md:p-4">
+          {/* ✅ بطاقات النقاط في المحتوى العادي */}
+          <TeamScores 
+            teams={teams} 
+            currentTurn={currentTurn} 
+            usingPitHelper={usingPitHelper} 
+            isAbsiMode={isAbsiMode}
+            timer={timer}
+            timerActive={timerActive}
+            toggleTimer={toggleTimer}
+            resetTimer={resetTimer}
+            currentChoiceQuestion={currentChoiceQuestion}
+            isNavBar={false} // ✅ عرض بطاقات النقاط
+          />
+
+          <TeamHelpers 
+            helpers={helpers}
+            currentTurn={currentTurn}
+            currentQuestion={currentQuestion}
+            currentChoiceQuestion={currentChoiceQuestion}
+            useNumber2Helper={useNumber2Helper}
+            usePitHelper={usePitHelper}
+          />
+
+          <QuestionDisplay 
+            currentQuestion={currentQuestion}
+            showAnswer={showAnswer}
+            usingPitHelper={usingPitHelper}
+            finishAnswering={finishAnswering}
+            awardPoints={awardPoints}
+            noCorrectAnswer={noCorrectAnswer}
+            zoomImage={zoomImage}
+          />
+
+          <ChoiceQuestion 
+            currentChoiceQuestion={currentChoiceQuestion}
+            showChoiceAnswers={showChoiceAnswers}
+            selectedAnswers={selectedAnswers}
+            finishChoiceAnswering={finishChoiceAnswering}
+            awardChoicePoints={awardChoicePoints}
+            awardChoicePointsBoth={awardChoicePointsBoth}
+            closeChoiceQuestion={closeChoiceQuestion}
+          />
+
+          <TopicGrid 
+            selectedTopics={selectedTopics}
+            currentTurn={currentTurn}
+            currentQuestion={currentQuestion}
+            currentChoiceQuestion={currentChoiceQuestion}
+            usedChoiceQuestions={usedChoiceQuestions}
+            selectChoiceQuestion={selectChoiceQuestion}
+            selectRandomQuestionForTeam={selectRandomQuestionForTeam}
+            isQuestionAvailable={isQuestionAvailable}
+            getAvailableQuestionsCount={getAvailableQuestionsCount}
+            hasUsedQuestionsInLevel={hasUsedQuestionsInLevel}
+            setShowConfirmReset={setShowConfirmReset}
+          />
+
+          <ImageModal zoomedImage={zoomedImage} closeZoomedImage={closeZoomedImage} />
+          
+          <ConfirmModal 
+            showConfirmReset={showConfirmReset}
+            setShowConfirmReset={setShowConfirmReset}
+            resetGame={resetGame}
+          />
+        </div>
+      </div>
+    </>
   );
 }

@@ -33,7 +33,26 @@ export default function QuestionDisplay({
       
       <h3 className="text-lg md:text-2xl font-bold text-center mb-4 md:mb-8 text-slate-100">{currentQuestion.question}</h3>
       
-      {currentQuestion.hasImage && (
+      {/* ✅ عرض QR Code إذا كان السؤال من نوع QR */}
+      {currentQuestion.hasQR && (
+        <div className="flex justify-center mb-4 md:mb-8">
+          <div className="bg-white p-4 rounded-xl shadow-2xl border-4 border-blue-400/50">
+            <img 
+              src={currentQuestion.qrImageUrl} 
+              alt="QR Code" 
+              className="max-w-full max-h-64 md:max-h-80 lg:max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity duration-300"
+              onClick={() => zoomImage(currentQuestion.qrImageUrl)}
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/300x300/000000/FFFFFF?text=QR+CODE';
+              }}
+            />
+            <p className="text-center mt-2 text-slate-800 font-bold text-sm">امسح الكود لرؤية السؤال</p>
+          </div>
+        </div>
+      )}
+      
+      {/* عرض الصور العادية */}
+      {currentQuestion.hasImage && !currentQuestion.hasQR && (
         <div className="flex justify-center mb-4 md:mb-8">
           <img 
             src={currentQuestion.imageUrl} 
@@ -47,6 +66,7 @@ export default function QuestionDisplay({
         </div>
       )}
       
+      {/* عرض الفيديو */}
       {currentQuestion.hasVideo && (
         <div className="flex justify-center mb-4 md:mb-8">
           <video 
@@ -63,6 +83,7 @@ export default function QuestionDisplay({
         </div>
       )}
       
+      {/* عرض الصوت */}
       {currentQuestion.hasAudio && (
         <div className="flex justify-center mb-4 md:mb-8">
           <audio 
@@ -91,7 +112,22 @@ export default function QuestionDisplay({
         <div className="text-center">
           <div className="bg-emerald-500/20 border border-emerald-400/50 rounded-xl p-4 md:p-6 mb-4 md:mb-8 backdrop-blur-sm">
             <h4 className="text-base md:text-lg font-bold text-emerald-400 mb-2 md:mb-3">الإجابة الصحيحة:</h4>
-            <p className="text-lg md:text-2xl text-white font-semibold">{currentQuestion.answer}</p>
+            <p className="text-lg md:text-2xl text-white font-semibold mb-4">{currentQuestion.answer}</p>
+            
+            {/* ✅ عرض صورة الجواب إذا كان السؤال من نوع QR */}
+            {currentQuestion.hasQR && currentQuestion.answerImageUrl && (
+              <div className="flex justify-center mt-4">
+                <img 
+                  src={currentQuestion.answerImageUrl} 
+                  alt="صورة الجواب" 
+                  className="max-w-full max-h-48 md:max-h-64 object-contain rounded-xl shadow-lg border-2 border-emerald-400/50 cursor-pointer hover:opacity-90 transition-opacity duration-300"
+                  onClick={() => zoomImage(currentQuestion.answerImageUrl)}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/300x200/10B981/FFFFFF?text=صورة+الجواب';
+                  }}
+                />
+              </div>
+            )}
           </div>
           
           <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-6">

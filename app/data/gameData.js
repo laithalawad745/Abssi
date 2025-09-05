@@ -1,4 +1,4 @@
-// ملف بيانات الأسئلة المحدث مع أسئلة الاختيارات
+// ملف بيانات الأسئلة المحدث مع أسئلة الاختيارات وفقرة "ولا كلمة"
 // imageUrl: '../../2.jpg'
 
 export const sampleTopics = [
@@ -605,6 +605,37 @@ export const sampleTopics = [
       ],
       order: 8
     }
+  ]
+},
+
+// ✅ إضافة فقرة "ولا كلمة" الجديدة مع QR codes
+{
+  id: 'qr_game',
+  name: 'ولا كلمة',
+  questions: [
+    {
+      id: 'qr1',
+      question: 'اسكان QR Code وشوف ايش الجواب',
+      answer: 'صورة العلم الأردني',
+      difficulty: 'easy',
+      points: 200,
+      mediaType: 'qr',
+      hasQR: true,
+      qrImageUrl: '../../qr_codes/qr1.png', // صورة QR code
+      answerImageUrl: '../../qr_answers/answer1.jpg' // صورة الجواب
+    }
+    // يمكنك إضافة المزيد من أسئلة QR هنا
+    // {
+    //   id: 'qr2',
+    //   question: 'اسكان QR Code وشوف ايش الجواب',
+    //   answer: 'صورة عبسي وهو يضحك',
+    //   difficulty: 'medium',
+    //   points: 400,
+    //   mediaType: 'qr',
+    //   hasQR: true,
+    //   qrImageUrl: '../../qr_codes/qr2.png',
+    //   answerImageUrl: '../../qr_answers/answer2.jpg'
+    // }
   ]
 }
 

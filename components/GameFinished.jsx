@@ -22,12 +22,28 @@ export default function GameFinished({ teams, isAbsiMode, resetGame }) {
             انتهت اللعبة! 
           </h1>
           
-          {/* عرض نوع المباراة */}
+          {/* ✅ تحديث عرض نوع المباراة */}
           {isAbsiMode && (
             <div className="mb-6">
-              <span className="inline-block px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-full">
-                🏆 مباراة عبسي + الاختيارات 🏆
+              <span className="inline-block px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-full mb-3">
+                🏆 المباراة الكاملة 🏆
               </span>
+              <div className="flex justify-center items-center gap-4 text-slate-300 text-sm md:text-base">
+                <div className="flex items-center gap-1">
+                  <span className="text-blue-400">🎬</span>
+                  <span>لايفات عبسي</span>
+                </div>
+                <div className="w-px h-4 bg-slate-600"></div>
+                <div className="flex items-center gap-1">
+                  <span className="text-purple-400">🎯</span>
+                  <span>الاختيارات</span>
+                </div>
+                <div className="w-px h-4 bg-slate-600"></div>
+                <div className="flex items-center gap-1">
+                  <span className="text-green-400">📱</span>
+                  <span>ولا كلمة</span>
+                </div>
+              </div>
             </div>
           )}
           
@@ -64,6 +80,16 @@ export default function GameFinished({ teams, isAbsiMode, resetGame }) {
               </p>
             )}
           </div>
+          
+          {/* ✅ إضافة إحصائيات إضافية */}
+          {isAbsiMode && (
+            <div className="mb-6 md:mb-8 p-4 bg-slate-700/50 rounded-xl">
+              <h3 className="text-lg md:text-xl font-bold text-slate-200 mb-3">🎉 تم إنهاء جميع الفقرات بنجاح!</h3>
+              <p className="text-slate-300 text-sm md:text-base">
+                تم لعب جميع الأسئلة المتاحة من فقرات لايفات عبسي والاختيارات وولا كلمة
+              </p>
+            </div>
+          )}
           
           <div className="flex justify-center gap-4">
             <button
