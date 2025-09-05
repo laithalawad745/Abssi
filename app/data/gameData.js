@@ -615,27 +615,72 @@ export const sampleTopics = [
   questions: [
     {
       id: 'qr1',
-      question: 'اسكان QR Code وشوف ايش الجواب',
-      answer: 'صورة العلم الأردني',
+      question: 'Scan Qr',
+      answer: ' ابو جودت',
       difficulty: 'easy',
       points: 200,
       mediaType: 'qr',
       hasQR: true,
-      qrImageUrl: '../../qr_codes/qr1.png', // صورة QR code
-      answerImageUrl: '../../qr_answers/answer1.jpg' // صورة الجواب
-    }
+      qrImageUrl: '../../abojaudat.png', // صورة QR code
+      answerImageUrl: '../../1637182067129.jpeg' // صورة الجواب
+    },
     // يمكنك إضافة المزيد من أسئلة QR هنا
-    // {
-    //   id: 'qr2',
-    //   question: 'اسكان QR Code وشوف ايش الجواب',
-    //   answer: 'صورة عبسي وهو يضحك',
-    //   difficulty: 'medium',
-    //   points: 400,
-    //   mediaType: 'qr',
-    //   hasQR: true,
-    //   qrImageUrl: '../../qr_codes/qr2.png',
-    //   answerImageUrl: '../../qr_answers/answer2.jpg'
-    // }
+    {
+      id: 'qr2',
+      question: 'Scan Qr',
+      answer: 'قمبز',
+      difficulty: 'medium',
+      points: 400,
+      mediaType: 'qr',
+      hasQR: true,
+      qrImageUrl: '../../gombz.png',
+      answerImageUrl: '../../photo_2025-09-05_17-59-00.jpg'
+    },    {
+      id: 'qr3',
+      question: 'Scan Qr',
+      answer: ' ابو معتز',
+      difficulty: 'hard',
+      points: 600,
+      mediaType: 'qr',
+      hasQR: true,
+      qrImageUrl: '../../abomutaz.png', // صورة QR code
+      answerImageUrl: '../../photo_2025-09-05_17-59-01.jpg' // صورة الجواب
+    },  
+    
+    
+    {
+      id: 'qr4',
+      question: 'Scan Qr',
+      answer: '  اقوى بطولة ب التاريخ',
+      difficulty: 'easy',
+      points: 200,
+      mediaType: 'qr',
+      hasQR: true,
+      qrImageUrl: '../../king.png', // صورة QR code
+      answerImageUrl: '../../photo_2025-09-05_17-59-06.jpg' // صورة الجواب
+    },
+    // يمكنك إضافة المزيد من أسئلة QR هنا
+    {
+      id: 'qr5',
+      question: 'Scan Qr',
+      answer: ' فورتنايت (افضل لعبة بالتاريخ ) ',
+      difficulty: 'medium',
+      points: 400,
+      mediaType: 'qr',
+      hasQR: true,
+      qrImageUrl: '../../fortnait.png',
+      answerImageUrl: '../../photo_2025-09-05_17-59-04.jpg'
+    },    {
+      id: 'qr6',
+      question: 'Scan Qr',
+      answer: ' قراند مولعة',
+      difficulty: 'hard',
+      points: 600,
+      mediaType: 'qr',
+      hasQR: true,
+      qrImageUrl: '../../gta.png', // صورة QR code
+      answerImageUrl: '../../photo_2025-09-05_17-59-02.jpg' // صورة الجواب
+    },
   ]
 }
 
