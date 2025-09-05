@@ -4,9 +4,10 @@
 import React, { useState, useEffect } from 'react';
 import { sampleTopics } from '../app/data/gameData';
 
-// Import all components
+// Import components
 import GameSetup from './GameSetup';
-import TeamScores from './TeamScores';
+import NavBar from './NavBar';
+import TeamScoresOnly from './TeamScoresOnly';
 import TeamHelpers from './TeamHelpers';
 import QuestionDisplay from './QuestionDisplay';
 import ChoiceQuestion from './ChoiceQuestion';
@@ -191,7 +192,6 @@ export default function QuizGame() {
       setSelectedAnswers({});
       setUsedChoiceQuestions([...usedChoiceQuestions, order]);
       
-      // إيقاف التوقيت عند بدء سؤال اختيارات
       if (timerActive) {
         stopTimer();
       }
@@ -297,7 +297,6 @@ export default function QuizGame() {
     return availableQuestions.length;
   };
 
-  // ✅ إصلاح بدء التوقيت التلقائي عند اختيار السؤال
   const selectRandomQuestionForTeam = (topicId, difficulty, team) => {
     if (team !== currentTurn) return;
 
@@ -332,12 +331,10 @@ export default function QuizGame() {
     setCurrentQuestion(selectedQuestion);
     setShowAnswer(false);
     
-    // ✅ إعادة تعيين التوقيت وبدء العد تلقائياً
-    console.log('Starting timer automatically...');
-    stopTimer(); // إيقاف أي توقيت سابق
-    setTimer(0); // إعادة إلى الصفر
+    stopTimer();
+    setTimer(0);
     setTimeout(() => {
-      startTimer(); // بدء العد بعد delay قصير
+      startTimer();
     }, 100);
   };
 
@@ -497,43 +494,28 @@ export default function QuizGame() {
 
   return (
     <>
-      {/* ✅ ناف بار صغير - التوقيت ودور الفريق فقط */}
-      <div 
-        className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-700"
-        style={{ position: 'fixed', top: 0, zIndex: 9999 }}
-      >
-        <TeamScores 
-          teams={teams} 
-          currentTurn={currentTurn} 
-          usingPitHelper={usingPitHelper} 
-          isAbsiMode={isAbsiMode}
-          timer={timer}
-          timerActive={timerActive}
-          toggleTimer={toggleTimer}
-          resetTimer={resetTimer}
-          currentChoiceQuestion={currentChoiceQuestion}
-          isNavBar={true} // ✅ عرض الناف بار فقط
-        />
-      </div>
+      {/* الناف بار - التوقيت ودور الفريق فقط */}
+      <NavBar 
+        currentTurn={currentTurn}
+        timer={timer}
+        timerActive={timerActive}
+        toggleTimer={toggleTimer}
+        resetTimer={resetTimer}
+        currentChoiceQuestion={currentChoiceQuestion}
+        usingPitHelper={usingPitHelper}
+        isAbsiMode={isAbsiMode}
+      />
 
       {/* المحتوى الرئيسي */}
       <div 
-        className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 select-none"
-        style={{ paddingTop: '80px' }} // ✅ مساحة أقل للناف بار الصغير
+className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 select-none mt-8 md:mt-24"
+        style={{ paddingTop: '120px' }}
       >
         <div className="max-w-7xl mx-auto p-2 md:p-4">
-          {/* ✅ بطاقات النقاط في المحتوى العادي */}
-          <TeamScores 
+          {/* نتائج الفرق فقط */}
+          <TeamScoresOnly 
             teams={teams} 
-            currentTurn={currentTurn} 
-            usingPitHelper={usingPitHelper} 
-            isAbsiMode={isAbsiMode}
-            timer={timer}
-            timerActive={timerActive}
-            toggleTimer={toggleTimer}
-            resetTimer={resetTimer}
-            currentChoiceQuestion={currentChoiceQuestion}
-            isNavBar={false} // ✅ عرض بطاقات النقاط
+            currentTurn={currentTurn}
           />
 
           <TeamHelpers 

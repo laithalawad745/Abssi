@@ -28,22 +28,7 @@ export default function GameFinished({ teams, isAbsiMode, resetGame }) {
               <span className="inline-block px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-full mb-3">
                 🏆 المباراة الكاملة 🏆
               </span>
-              <div className="flex justify-center items-center gap-4 text-slate-300 text-sm md:text-base">
-                <div className="flex items-center gap-1">
-                  <span className="text-blue-400">🎬</span>
-                  <span>لايفات عبسي</span>
-                </div>
-                <div className="w-px h-4 bg-slate-600"></div>
-                <div className="flex items-center gap-1">
-                  <span className="text-purple-400">🎯</span>
-                  <span>الاختيارات</span>
-                </div>
-                <div className="w-px h-4 bg-slate-600"></div>
-                <div className="flex items-center gap-1">
-                  <span className="text-green-400">📱</span>
-                  <span>ولا كلمة</span>
-                </div>
-              </div>
+      
             </div>
           )}
           
